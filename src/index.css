@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary: var(--color-primary);
+    --color-primary-foreground: var(--color-primary-foreground);
+    --color-background: var(--color-background);
+    --color-foreground: var(--color-foreground);
+    --color-card: var(--color-card);
+    --color-card-foreground: var(--color-card-foreground);
+    --color-border: var(--color-border);
+
+    --animate-spin-slow: spin 8s linear infinite;
+    --animate-spin-reverse-slower: spin-reverse 12s linear infinite;
+}
+
+:root {
+    /* Light Mode (Default) - 80% White, 20% Green */
+    --color-primary: #10B981;
+    /* Green-500 */
+    --color-primary-foreground: #FFFFFF;
+
+    --color-background: #F8FAFC;
+    /* Slate-50 */
+    --color-foreground: #0F172A;
+    /* Slate-900 */
+
+    --color-card: #FFFFFF;
+    --color-card-foreground: #0F172A;
+
+    --color-border: #E2E8F0;
+    /* Slate-200 */
+
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark Mode - Deep Backgrounds with Green Accents */
+        --color-primary: #34D399;
+        /* Green-400 */
+        --color-primary-foreground: #020617;
+        /* Slate-950 */
+
+        --color-background: #020617;
+        /* Slate-950 */
+        --color-foreground: #F8FAFC;
+        /* Slate-50 */
+
+        --color-card: #0F172A;
+        /* Slate-900 */
+        --color-card-foreground: #F8FAFC;
+
+        --color-border: #1E293B;
+        /* Slate-800 */
+
+        color-scheme: dark;
+    }
+}
+
+/* Custom Utilities */
+@layer utilities {
+    .glass {
+        @apply backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border border-white/20 dark:border-slate-800/50 shadow-lg;
+    }
+
+    .glass-panel {
+        @apply backdrop-blur-xl bg-white/40 dark:bg-slate-950/40 border border-white/30 dark:border-white/5;
+    }
+}
+
+/* Keyframes */
+@keyframes spin-reverse {
+    from {
+        transform: rotate(360deg);
+    }
+
+    to {
+        transform: rotate(0deg);
+    }
+}
