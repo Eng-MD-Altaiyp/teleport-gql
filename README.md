@@ -69,7 +69,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/teleport-gql.git
+git clone https://github.com/Eng-MD-Altaiyp/teleport-gql.git
 cd teleport-gql
 
 # Install dependencies
@@ -126,7 +126,7 @@ teleport-gql/
 2. **Connect** – Click the  Connect button to fetch the schema
 3. **Explore Schema** – Browse available queries and fields in the tree view
 4. **Select Fields** – Check the fields you want to include in your query
-5. **Execute** – Click ▶ Execute to run the generated query
+5. **Execute** – Click Execute to run the generated query
 6. **View Response** – See the JSON response with timing and status info
 
 ---
