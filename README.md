@@ -69,7 +69,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/teleport-gql.git
+git clone https://github.com/Eng-MD-Altaiyp/teleport-gql.git
 cd teleport-gql
 
 # Install dependencies
