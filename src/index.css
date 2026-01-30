@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode for Tailwind CSS 4 */
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
+
 @theme {
     --color-primary: var(--color-primary);
     --color-primary-foreground: var(--color-primary-foreground);
@@ -33,28 +37,46 @@
     color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* Dark Mode - Deep Backgrounds with Green Accents */
-        --color-primary: #34D399;
-        /* Green-400 */
-        --color-primary-foreground: #020617;
-        /* Slate-950 */
+/* Manual dark mode override via .dark class */
+.dark {
+    --color-primary: #34D399;
+    /* Green-400 */
+    --color-primary-foreground: #020617;
+    /* Slate-950 */
 
-        --color-background: #020617;
-        /* Slate-950 */
-        --color-foreground: #F8FAFC;
-        /* Slate-50 */
+    --color-background: #020617;
+    /* Slate-950 */
+    --color-foreground: #F8FAFC;
+    /* Slate-50 */
 
-        --color-card: #0F172A;
-        /* Slate-900 */
-        --color-card-foreground: #F8FAFC;
+    --color-card: #0F172A;
+    /* Slate-900 */
+    --color-card-foreground: #F8FAFC;
 
-        --color-border: #1E293B;
-        /* Slate-800 */
+    --color-border: #1E293B;
+    /* Slate-800 */
 
-        color-scheme: dark;
-    }
+    color-scheme: dark;
+}
+
+/* Manual light mode override via .light class */
+.light {
+    --color-primary: #10B981;
+    /* Green-500 */
+    --color-primary-foreground: #FFFFFF;
+
+    --color-background: #F8FAFC;
+    /* Slate-50 */
+    --color-foreground: #0F172A;
+    /* Slate-900 */
+
+    --color-card: #FFFFFF;
+    --color-card-foreground: #0F172A;
+
+    --color-border: #E2E8F0;
+    /* Slate-200 */
+
+    color-scheme: light;
 }
 
 /* Custom Utilities */
@@ -64,7 +86,40 @@
     }
 
     .glass-panel {
-        @apply backdrop-blur-xl bg-white/40 dark:bg-slate-950/40 border border-white/30 dark:border-white/5;
+        @apply backdrop-blur-xl bg-white/90 dark:bg-slate-950/40 border border-slate-200/50 dark:border-white/5 shadow-sm dark:shadow-none;
+    }
+
+    /* Consistent, green scrollbars without arrow buttons */
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-primary) transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: var(--color-primary);
+        border-radius: 9999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+
+    /* Remove up/down arrow buttons */
+    .custom-scrollbar::-webkit-scrollbar-button {
+        width: 0;
+        height: 0;
+        display: none;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-corner {
+        background: transparent;
     }
 }
 
