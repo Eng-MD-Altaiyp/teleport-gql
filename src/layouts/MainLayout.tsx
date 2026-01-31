@@ -25,7 +25,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                     <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/30">
                         <span className="text-white font-black text-sm leading-none select-none">T</span>
                     </div>
-                    <span className="font-bold text-sm bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-white/60">Teleport</span>
+                    <span className="font-bold text-sm bg-clip-text text-transparent bg-linear-to-r from-slate-800 to-slate-600 dark:from-white dark:to-white/60">Teleport</span>
                 </div>
                 <div className="flex items-center gap-1">
                     <button

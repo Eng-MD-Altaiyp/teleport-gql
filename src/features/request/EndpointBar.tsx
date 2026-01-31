@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { Zap, Save, Loader2, ChevronDown, Settings } from 'lucide-react';
+import { Zap, Save, Loader2, ChevronDown, Settings, FilePlus } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { type Tab } from '../../types/models';
 
 interface EndpointBarProps {
     url: string;
     onUrlChange: (url: string) => void;
     onConnect: () => void;
     isLoading: boolean;
+    activeTab?: Tab;
+    onSave?: () => void;
+    onSaveAs?: () => void;
 }
 
-export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading }: EndpointBarProps) => {
+export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading, activeTab, onSave, onSaveAs }: EndpointBarProps) => {
     const [showMenu, setShowMenu] = useState(false);
 
     return (
@@ -37,17 +41,37 @@ export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading }: Endpoint
             {/* Bottom Row (Mobile): Actions */}
             <div className="flex justify-end gap-2 w-full md:w-auto relative">
                 {/* Desktop Actions */}
-                <Button variant="ghost" size="sm" className="hidden md:flex">
-                    <Save size={16} className="mr-2" />
-                    Save
-                </Button>
+                {activeTab ? (
+                    activeTab.isNew ? (
+                        <Button variant="ghost" size="sm" className="hidden md:flex" onClick={onSaveAs}>
+                            <FilePlus size={16} className="mr-2" />
+                            Save as
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="hidden md:flex"
+                            onClick={onSave}
+                            disabled={!activeTab.isDirty}
+                        >
+                            <Save size={16} className="mr-2" />
+                            Save
+                        </Button>
+                    )
+                ) : (
+                    <Button variant="ghost" size="sm" className="hidden md:flex" disabled>
+                        <Save size={16} className="mr-2" />
+                        Save
+                    </Button>
+                )}
 
                 {/* Connect Button Group - Full width on mobile for better touch targets? Or just right aligned? User said "buttons from bottom". Let's make it fill or right aligned. Right aligned is standard. */}
                 <div className="flex rounded-lg overflow-hidden w-full md:w-auto">
                     <Button
                         variant="primary"
                         size="md"
-                        className="!py-2 !px-4 !rounded-r-none flex-1 md:flex-none justify-center"
+                        className="py-2! px-4! rounded-r-none! flex-1 md:flex-none justify-center"
                         onClick={onConnect}
                         disabled={isLoading}
                     >
@@ -61,7 +85,7 @@ export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading }: Endpoint
 
                     {/* Mobile Dropdown Trigger */}
                     <button
-                        className="md:hidden bg-primary hover:bg-primary-hover text-white px-3 border-l border-black/10 flex items-center justify-center transition-colors !rounded-r-lg"
+                        className="md:hidden bg-primary hover:bg-primary-hover text-white px-3 border-l border-black/10 flex items-center justify-center transition-colors rounded-r-lg"
                         onClick={() => setShowMenu(!showMenu)}
                     >
                         <ChevronDown size={14} />
@@ -73,10 +97,24 @@ export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading }: Endpoint
                     <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
                         <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-[#1a1a2e] border border-black/5 dark:border-white/10 rounded-xl shadow-lg z-50 overflow-hidden flex flex-col py-1 animate-in fade-in slide-in-from-top-2">
-                            <button className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 w-full text-left">
-                                <Save size={16} />
-                                Save Request
-                            </button>
+                            {activeTab?.isNew ? (
+                                <button
+                                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 w-full text-left"
+                                    onClick={() => { onSaveAs?.(); setShowMenu(false); }}
+                                >
+                                    <FilePlus size={16} />
+                                    Save as
+                                </button>
+                            ) : (
+                                <button
+                                    className={`flex items-center gap-3 px-4 py-3 text-sm font-medium w-full text-left ${activeTab?.isDirty ? 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5' : 'text-slate-400 dark:text-slate-500 cursor-not-allowed'}`}
+                                    onClick={() => { if (activeTab?.isDirty) { onSave?.(); setShowMenu(false); } }}
+                                    disabled={!activeTab?.isDirty}
+                                >
+                                    <Save size={16} />
+                                    Save Request
+                                </button>
+                            )}
                             <button className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 w-full text-left">
                                 <Settings size={16} />
                                 Settings
