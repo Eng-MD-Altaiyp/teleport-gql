@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EndpointBar } from './EndpointBar';
 import { SchemaTree, type SelectionMap } from '../introspection/SchemaTree';
 import { fetchIntrospection, executeQuery } from '../../services/graphqlService';
 import { GraphQLSchema } from 'graphql';
 import { Play, AlertCircle, Copy, Code, Activity, Database, Braces as BracesIcon } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { useData } from '../../context/DataContext';
+import { SaveAsDialog } from '../../components/ui/SaveAsDialog';
 
 const generateQueryFromSelections = (selections: SelectionMap) => {
     // 1. Parse keys into object structure {user: {id: true, posts: {title: true } } }
@@ -66,6 +68,10 @@ const generateQueryFromSelections = (selections: SelectionMap) => {
 
 
 export const RequestPanel = () => {
+    const { tabs, activeTabId, updateTabContent, updateEndpoint, markTabDirty, collections, addEndpointToCollection } = useData();
+
+    const activeTab = tabs.find(t => t.id === activeTabId);
+
     // https://spacex-production.up.railway.app/
     const [url, setUrl] = useState("https://graphqlzero.almansi.me/api");
     const [schema, setSchema] = useState<GraphQLSchema | null>(null);
@@ -75,7 +81,16 @@ export const RequestPanel = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [meta, setMeta] = useState<{ status: number, time: number, size: number } | null>(null);
-    const [activeTab, setActiveTab] = useState<'explorer' | 'request' | 'response' | 'variables'>('request'); // Mobile Tab State
+    const [activeTabView, setActiveTabView] = useState<'explorer' | 'request' | 'response' | 'variables'>('request'); // Mobile Tab State
+    const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
+
+    // Sync with active tab
+    useEffect(() => {
+        if (activeTab) {
+            setUrl(activeTab.endpoint.url || "https://graphqlzero.almansi.me/api");
+            setQuery(activeTab.endpoint.body || "");
+        }
+    }, [activeTab]);
 
     // -- Actions --
 
@@ -120,6 +135,50 @@ export const RequestPanel = () => {
         }
     };
 
+    // Save handlers
+    const handleSave = () => {
+        if (!activeTab) return;
+
+        // Update endpoint in collection or standalone
+        const updatedEndpoint = {
+            name: activeTab.title,
+            url,
+            body: query,
+            method: activeTab.endpoint.method,
+        };
+
+        updateEndpoint(activeTab.endpoint.id, activeTab.collectionId, updatedEndpoint);
+        markTabDirty(activeTab.id, false);
+    };
+
+    const handleSaveAs = (name: string, collectionId: string) => {
+        if (!activeTab) return;
+
+        const endpoint = {
+            name,
+            url,
+            body: query,
+            method: activeTab.endpoint.method,
+        };
+
+        addEndpointToCollection(collectionId, endpoint);
+        markTabDirty(activeTab.id, false);
+    };
+
+    const handleQueryChange = (newQuery: string) => {
+        setQuery(newQuery);
+        if (activeTab) {
+            updateTabContent(activeTab.id, { body: newQuery });
+        }
+    };
+
+    const handleUrlChange = (newUrl: string) => {
+        setUrl(newUrl);
+        if (activeTab) {
+            updateTabContent(activeTab.id, { url: newUrl });
+        }
+    };
+
     // Helper for fake line numbers
     const LineNumbers = ({ text }: { text: string }) => {
         const lines = text.split('\n').length;
@@ -132,20 +191,44 @@ export const RequestPanel = () => {
         );
     };
 
+    // If no active tab, show empty state
+    if (!activeTab) {
+        return (
+            <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500">
+                <div className="text-center">
+                    <Code size={48} className="mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No active tab. Create a new tab to get started.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-[#050510] text-slate-900 dark:text-slate-200 transition-colors">
             <EndpointBar
                 url={url}
-                onUrlChange={setUrl}
+                onUrlChange={handleUrlChange}
                 onConnect={handleConnect}
                 isLoading={isLoading}
+                activeTab={activeTab}
+                onSave={handleSave}
+                onSaveAs={() => setShowSaveAsDialog(true)}
+            />
+
+            {/* SaveAsDialog */}
+            <SaveAsDialog
+                isOpen={showSaveAsDialog}
+                onClose={() => setShowSaveAsDialog(false)}
+                onSave={handleSaveAs}
+                collections={collections}
+                defaultName={url}
             />
 
             {/* Mobile Tab Bar - Enhanced */}
             <div className="md:hidden flex gap-1.5 p-2 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg">
                 <button
-                    onClick={() => setActiveTab('explorer')}
-                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTab === 'explorer'
+                    onClick={() => setActiveTabView('explorer')}
+                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTabView === 'explorer'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                         }`}
@@ -154,8 +237,8 @@ export const RequestPanel = () => {
                     Explorer
                 </button>
                 <button
-                    onClick={() => setActiveTab('request')}
-                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTab === 'request'
+                    onClick={() => setActiveTabView('request')}
+                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTabView === 'request'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                         }`}
@@ -164,8 +247,8 @@ export const RequestPanel = () => {
                     Query
                 </button>
                 <button
-                    onClick={() => setActiveTab('response')}
-                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTab === 'response'
+                    onClick={() => setActiveTabView('response')}
+                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTabView === 'response'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                         }`}
@@ -174,8 +257,8 @@ export const RequestPanel = () => {
                     Response
                 </button>
                 <button
-                    onClick={() => setActiveTab('variables')}
-                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTab === 'variables'
+                    onClick={() => setActiveTabView('variables')}
+                    className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 ${activeTabView === 'variables'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                         }`}
@@ -195,9 +278,9 @@ export const RequestPanel = () => {
                     md:rounded-3xl md:border md:border-slate-200 md:dark:border-white/5 md:shadow-xl md:shadow-slate-200/50 md:dark:shadow-black/50
                     flex flex-col overflow-auto custom-scrollbar min-w-0 min-h-0
                     transition-all duration-300 md:hover:shadow-2xl md:hover:shadow-slate-300/50 md:dark:hover:shadow-black/80
-                    ${activeTab === 'explorer' ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                    ${activeTabView === 'explorer' ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
                 `}>
-                    <div className="h-12 px-5 border-b border-slate-200/50 dark:border-white/5 flex items-center bg-gradient-to-r from-slate-100/50 to-transparent dark:from-white/5">
+                    <div className="h-12 px-5 border-b border-slate-200/50 dark:border-white/5 flex items-center bg-linear-to-r from-slate-100/50 to-transparent dark:from-white/5">
                         <Database size={15} className="mr-2 opacity-60 text-indigo-600 dark:text-indigo-400" />
                         <span className="text-[11px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">Explorer</span>
                     </div>
@@ -210,57 +293,95 @@ export const RequestPanel = () => {
                     <SchemaTree schema={schema} onSelectionChange={handleSelectionChange} />
                 </div>
 
-                {/* 2. Query Card - Full Height */}
-                <div className={`
-                    absolute inset-0 z-20 md:static md:col-span-5
-                    bg-white/95 dark:bg-slate-900/80 backdrop-blur-xl
-                    md:rounded-3xl md:border md:border-slate-200 md:dark:border-white/5 md:shadow-xl md:shadow-slate-200/50 md:dark:shadow-black/50
-                    flex flex-col overflow-hidden
-                    transition-all duration-300 md:hover:shadow-2xl md:hover:shadow-slate-300/50 md:dark:hover:shadow-black/80
-                    ${activeTab === 'request' ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
-                `}>
-                    {/* Query Section */}
-                    <div className="flex-1 flex flex-col relative group min-h-0">
-                        <div className="h-12 px-5 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-slate-100/50 to-transparent dark:from-white/5">
-                            <div className="flex items-center">
-                                <Code size={15} className="mr-2 opacity-60 text-pink-600 dark:text-pink-400" />
-                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">Query</span>
+                {/* 2. Query & Variables Column */}
+                <div className="absolute inset-0 z-20 md:static md:col-span-5 md:flex md:flex-col md:gap-4 overflow-hidden min-h-0">
+
+                    {/* Query Card */}
+                    <div className={`
+                        absolute inset-0 md:static md:flex-1
+                        bg-white/95 dark:bg-slate-900/80 backdrop-blur-xl
+                        md:rounded-3xl md:border md:border-slate-200 md:dark:border-white/5 md:shadow-xl md:shadow-slate-200/50 md:dark:shadow-black/50
+                        flex flex-col overflow-hidden
+                        transition-all duration-300 md:hover:shadow-2xl md:hover:shadow-slate-300/50 md:dark:hover:shadow-black/80
+                        ${activeTabView === 'request' ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+                        min-h-0
+                    `}>
+                        {/* Query Section */}
+                        <div className="flex-1 flex flex-col relative group min-h-0">
+                            <div className="h-12 px-5 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between bg-linear-to-r from-slate-100/50 to-transparent dark:from-white/5">
+                                <div className="flex items-center">
+                                    <Code size={15} className="mr-2 opacity-60 text-pink-600 dark:text-pink-400" />
+                                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">Query</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8! px-3! text-[10px]! rounded-lg! text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white"
+                                        onClick={() => navigator.clipboard.writeText(query)}
+                                    >
+                                        <Copy size={12} className="mr-1" /> COPY
+                                    </Button>
+                                    <Button
+                                        variant={query ? 'primary' : 'ghost'}
+                                        size="sm"
+                                        className={`h-8! px-4! text-[10px]! rounded-lg! shadow-lg! shadow-primary/20! ${!query ? 'opacity-50 blur-[1px]' : ''}`}
+                                        onClick={() => { handleExecute(); setActiveTabView('response'); }}
+                                        disabled={!query || isLoading}
+                                    >
+                                        <Play size={12} className="mr-1 fill-current" /> RUN
+                                    </Button>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="!h-8 !px-3 !text-[10px] !rounded-lg text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white"
-                                    onClick={() => navigator.clipboard.writeText(query)}
-                                >
-                                    <Copy size={12} className="mr-1" /> COPY
-                                </Button>
-                                <Button
-                                    variant={query ? 'primary' : 'ghost'}
-                                    size="sm"
-                                    className={`!h-8 !px-4 !text-[10px] !rounded-lg !shadow-lg !shadow-primary/20 ${!query ? 'opacity-50 blur-[1px]' : ''}`}
-                                    onClick={() => { handleExecute(); setActiveTab('response'); }}
-                                    disabled={!query || isLoading}
-                                >
-                                    <Play size={12} className="mr-1 fill-current" /> RUN
-                                </Button>
+                            <div className="flex-1 flex relative bg-slate-50 dark:bg-slate-950/50 overflow-auto custom-scrollbar min-h-0">
+                                <LineNumbers text={query} />
+                                <textarea
+                                    className="flex-1 bg-transparent text-sm font-mono text-purple-700 dark:text-blue-300 p-4 pl-0 resize-none focus:outline-none leading-6 placeholder:opacity-40 overflow-hidden"
+                                    value={query}
+                                    onChange={(e) => handleQueryChange(e.target.value)}
+                                    spellCheck={false}
+                                    placeholder="# Select fields from Explorer..."
+                                />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Variables Card - Compact and Sticky */}
+                    <div className={`
+                        absolute inset-0 md:static md:h-32 md:shrink-0
+                        bg-white/95 dark:bg-slate-900/80 backdrop-blur-xl
+                        md:rounded-2xl md:border md:border-slate-200 md:dark:border-white/5 md:shadow-lg md:shadow-slate-200/40 md:dark:shadow-black/40
+                        flex flex-col overflow-hidden
+                        transition-all duration-300 md:hover:shadow-xl md:hover:shadow-slate-300/40 md:dark:hover:shadow-black/70
+                        ${activeTabView === 'variables' ? 'translate-x-0 z-35' : '-translate-x-full md:translate-x-0'}
+                    `}>
+                        <div className="h-10 px-4 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between bg-linear-to-r from-slate-100/50 to-transparent dark:from-white/5">
+                            <div className="flex items-center">
+                                <BracesIcon size={13} className="mr-2 opacity-60 text-amber-600 dark:text-amber-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">Variables</span>
+                            </div>
+                            <button
+                                onClick={() => navigator.clipboard.writeText(variables)}
+                                className="h-7 px-2 text-[10px] font-bold uppercase tracking-wide rounded-lg text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white transition-colors flex items-center gap-1"
+                            >
+                                <Copy size={11} /> Copy
+                            </button>
+                        </div>
                         <div className="flex-1 flex relative bg-slate-50 dark:bg-slate-950/50 overflow-auto custom-scrollbar min-h-0">
-                            <LineNumbers text={query} />
+                            <LineNumbers text={variables} />
                             <textarea
-                                className="flex-1 bg-transparent text-sm font-mono text-purple-700 dark:text-blue-300 p-4 pl-0 resize-none focus:outline-none leading-6 placeholder:opacity-40 overflow-hidden"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
+                                className="flex-1 bg-transparent text-xs font-mono text-amber-700 dark:text-yellow-300 p-3 pl-0 resize-none focus:outline-none leading-5 placeholder:opacity-40 overflow-hidden"
+                                value={variables}
+                                onChange={(e) => setVariables(e.target.value)}
                                 spellCheck={false}
-                                placeholder="# Select fields from Explorer..."
+                                placeholder="{}"
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* 3. Response & Variables Container */}
-                <div className="absolute inset-0 z-30 md:static md:col-span-4 md:flex md:flex-col md:gap-4 min-h-0">
+                {/* 3. Response Container */}
+                <div className="absolute inset-0 z-30 md:static md:col-span-4 md:flex md:flex-col min-h-0">
                     {/* Response Card */}
                     <div className={`
                         absolute inset-0 md:static md:flex-1 min-h-0
@@ -268,9 +389,9 @@ export const RequestPanel = () => {
                         md:rounded-3xl md:border md:border-slate-200 md:dark:border-white/5 md:shadow-xl md:shadow-slate-200/50 md:dark:shadow-black/50
                         flex flex-col overflow-hidden
                         transition-all duration-300 md:hover:shadow-2xl md:hover:shadow-slate-300/50 md:dark:hover:shadow-black/80
-                        ${activeTab === 'response' ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+                        ${activeTabView === 'response' ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
                     `}>
-                        <div className="h-12 px-5 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-slate-100/50 to-transparent dark:from-white/5 flex-shrink-0">
+                        <div className="h-12 px-5 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between bg-linear-to-r from-slate-100/50 to-transparent dark:from-white/5 shrink-0">
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center">
                                     <Activity size={15} className="mr-2 opacity-60 text-emerald-600 dark:text-emerald-400" />
@@ -292,7 +413,7 @@ export const RequestPanel = () => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="!h-8 !px-3 !text-[10px] !rounded-lg text-green-600 dark:text-green-400/70 hover:text-green-700 dark:hover:text-green-400"
+                                    className="h-8! px-3! text-[10px]! rounded-lg! text-green-600 dark:text-green-400/70 hover:text-green-700 dark:hover:text-green-400"
                                     onClick={() => navigator.clipboard.writeText(JSON.stringify(response, null, 2))}
                                 >
                                     <Copy size={12} className="mr-1" /> JSON
@@ -320,39 +441,6 @@ export const RequestPanel = () => {
                                     <span className="text-xs uppercase tracking-widest">Ready to run</span>
                                 </div>
                             )}
-                        </div>
-                    </div>
-
-                    {/* Variables Card - Compact, under Response */}
-                    <div className={`
-                        absolute inset-0 md:static md:h-36 md:flex-shrink-0
-                        bg-white/95 dark:bg-slate-900/80 backdrop-blur-xl
-                        md:rounded-2xl md:border md:border-slate-200 md:dark:border-white/5 md:shadow-lg md:shadow-slate-200/40 md:dark:shadow-black/40
-                        flex flex-col overflow-hidden
-                        transition-all duration-300 md:hover:shadow-xl md:hover:shadow-slate-300/40 md:dark:hover:shadow-black/70
-                        ${activeTab === 'variables' ? 'translate-x-0 z-35' : '-translate-x-full md:translate-x-0'}
-                    `}>
-                        <div className="h-10 px-4 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-slate-100/50 to-transparent dark:from-white/5">
-                            <div className="flex items-center">
-                                <BracesIcon size={13} className="mr-2 opacity-60 text-amber-600 dark:text-amber-400" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">Variables</span>
-                            </div>
-                            <button
-                                onClick={() => navigator.clipboard.writeText(variables)}
-                                className="h-7 px-2 text-[10px] font-bold uppercase tracking-wide rounded-lg text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white transition-colors flex items-center gap-1"
-                            >
-                                <Copy size={11} /> Copy
-                            </button>
-                        </div>
-                        <div className="flex-1 flex relative bg-slate-50 dark:bg-slate-950/50 overflow-auto custom-scrollbar min-h-0">
-                            <LineNumbers text={variables} />
-                            <textarea
-                                className="flex-1 bg-transparent text-xs font-mono text-amber-700 dark:text-yellow-300 p-3 pl-0 resize-none focus:outline-none leading-5 placeholder:opacity-40 overflow-hidden"
-                                value={variables}
-                                onChange={(e) => setVariables(e.target.value)}
-                                spellCheck={false}
-                                placeholder="{}"
-                            />
                         </div>
                     </div>
                 </div>

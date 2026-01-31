@@ -1,13 +1,16 @@
 import { ThemeProvider } from './context/ThemeContext';
+import { DataProvider } from './context/DataContext';
 import { MainLayout } from './layouts/MainLayout';
 import { RequestPanel } from './features/request/RequestPanel';
 
 function App() {
   return (
     <ThemeProvider>
-      <MainLayout>
-        <RequestPanel />
-      </MainLayout>
+      <DataProvider>
+        <MainLayout>
+          <RequestPanel />
+        </MainLayout>
+      </DataProvider>
     </ThemeProvider>
   );
 }
