@@ -7,6 +7,8 @@ import { Play, AlertCircle, Copy, Code, Activity, Database, Braces as BracesIcon
 import { Button } from '../../components/ui/Button';
 import { useData } from '../../context/DataContext';
 import { SaveAsDialog } from '../../components/ui/SaveAsDialog';
+import { getActiveEnvironment, processVariables } from '../../utils/environment';
+import { resolveFinalUrl } from '../../utils/url';
 
 const generateQueryFromSelections = (selections: SelectionMap) => {
     // 1. Parse keys into object structure {user: {id: true, posts: {title: true } } }
@@ -68,9 +70,24 @@ const generateQueryFromSelections = (selections: SelectionMap) => {
 
 
 export const RequestPanel = () => {
-    const { tabs, activeTabId, updateTabContent, updateEndpoint, markTabDirty, collections, addEndpointToCollection } = useData();
+    const {
+        tabs,
+        activeTabId,
+        updateTabContent,
+        updateEndpoint,
+        markTabDirty,
+        collections,
+        addEndpointToCollection,
+        environments,
+        activeEnvironmentId,
+        globalVariables,
+        globalParams,
+        globalSecrets,
+    } = useData();
 
     const activeTab = tabs.find(t => t.id === activeTabId);
+    const activeEnvironment = getActiveEnvironment(environments, activeEnvironmentId);
+    const globals = { globalVariables, globalParams, globalSecrets };
 
     // https://spacex-production.up.railway.app/
     const [url, setUrl] = useState("https://graphqlzero.almansi.me/api");
@@ -80,6 +97,9 @@ export const RequestPanel = () => {
     const [response, setResponse] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [urlError, setUrlError] = useState<string | null>(null);
+    const [urlWarning, setUrlWarning] = useState<string | null>(null);
+    const [finalUrl, setFinalUrl] = useState<string>("");
     const [meta, setMeta] = useState<{ status: number, time: number, size: number } | null>(null);
     const [activeTabView, setActiveTabView] = useState<'explorer' | 'request' | 'response' | 'variables'>('request'); // Mobile Tab State
     const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
@@ -92,13 +112,35 @@ export const RequestPanel = () => {
         }
     }, [activeTab]);
 
+    // Recompute final URL when inputs or environment change
+    useEffect(() => {
+        const substituted = processVariables(url, activeEnvironment, globals);
+        const result = resolveFinalUrl(activeEnvironment?.baseUrl || '', substituted);
+        setFinalUrl(result.finalUrl);
+        setUrlError(result.error ?? null);
+        setUrlWarning(result.warning ?? null);
+    }, [url, activeEnvironment, globalVariables, globalParams, globalSecrets]);
+
     // -- Actions --
 
     const handleConnect = async () => {
         setIsLoading(true);
         setError(null);
+        if (urlError) {
+            setIsLoading(false);
+            return;
+        }
+
+        const substituted = processVariables(url, activeEnvironment, globals);
+        const resolved = resolveFinalUrl(activeEnvironment?.baseUrl || '', substituted);
+        if (resolved.error) {
+            setUrlError(resolved.error);
+            setIsLoading(false);
+            return;
+        }
+
         try {
-            const schema = await fetchIntrospection(url);
+            const schema = await fetchIntrospection(resolved.finalUrl);
             setSchema(schema);
         } catch (e: any) {
             setError("Failed to fetch schema: " + e.message);
@@ -114,13 +156,25 @@ export const RequestPanel = () => {
 
     const handleExecute = async () => {
         if (!query) return;
+        if (urlError) return;
         setIsLoading(true);
         setError(null);
         setResponse(null);
         setMeta(null);
 
+        const substitutedUrl = processVariables(url, activeEnvironment, globals);
+        const resolvedUrlResult = resolveFinalUrl(activeEnvironment?.baseUrl || '', substitutedUrl);
+        if (resolvedUrlResult.error) {
+            setUrlError(resolvedUrlResult.error);
+            setIsLoading(false);
+            return;
+        }
+
+        const resolvedQuery = processVariables(query, activeEnvironment, globals);
+        const resolvedVariables = processVariables(variables, activeEnvironment, globals);
+
         try {
-            const res = await executeQuery(url, query, variables);
+            const res = await executeQuery(resolvedUrlResult.finalUrl, resolvedQuery, resolvedVariables);
             if (res.error) {
                 setError(res.error);
                 setMeta({ status: 0, time: 0, size: 0 });
@@ -213,6 +267,9 @@ export const RequestPanel = () => {
                 activeTab={activeTab}
                 onSave={handleSave}
                 onSaveAs={() => setShowSaveAsDialog(true)}
+                finalUrl={finalUrl}
+                urlError={urlError}
+                urlWarning={urlWarning}
             />
 
             {/* SaveAsDialog */}

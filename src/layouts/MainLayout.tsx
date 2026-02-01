@@ -5,6 +5,7 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { Tabs } from '../components/layout/Tabs';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { EnvironmentDropdown } from '../features/environment/EnvironmentDropdown';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -55,17 +56,18 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 <main className="flex-1 flex flex-col min-w-0 glass-panel rounded-3xl overflow-hidden transition-all duration-300">
                     {/* Header / Tabs */}
                     <div className="flex flex-col bg-slate-50/50 dark:bg-white/5 border-b border-slate-200/50 dark:border-white/5">
-                        <header className="h-12 px-4 flex items-center justify-between">
-                            {/* Breadcrumbs or Context Info */}
-                            <div className="flex items-center gap-2 text-sm opacity-60">
-                                <span>My Collection</span>
-                                <span>/</span>
-                                <span className="text-foreground">Get User</span>
+                        <header className="h-12 px-4 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <span className="font-semibold">Teleport</span>
+                                <span className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Workspace</span>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                <span className="text-xs font-mono opacity-50">Online</span>
+                            <div className="flex items-center gap-3">
+                                <EnvironmentDropdown />
+                                <div className="hidden md:flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                    <span className="text-xs font-mono opacity-50">Online</span>
+                                </div>
                             </div>
                         </header>
                         <Tabs />

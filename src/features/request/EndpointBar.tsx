@@ -11,9 +11,12 @@ interface EndpointBarProps {
     activeTab?: Tab;
     onSave?: () => void;
     onSaveAs?: () => void;
+    finalUrl: string;
+    urlError?: string | null;
+    urlWarning?: string | null;
 }
 
-export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading, activeTab, onSave, onSaveAs }: EndpointBarProps) => {
+export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading, activeTab, onSave, onSaveAs, finalUrl, urlError, urlWarning }: EndpointBarProps) => {
     const [showMenu, setShowMenu] = useState(false);
 
     return (
@@ -35,6 +38,16 @@ export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading, activeTab,
                         placeholder="Enter Endpoint..."
                         className="w-full h-full bg-transparent border-none rounded-xl px-4 py-2 text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-800 dark:text-slate-200"
                     />
+                    <div className="px-4 pb-2 text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mr-2">Final URL:</span>
+                        <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 break-all">{finalUrl || '—'}</span>
+                    </div>
+                    {urlError && (
+                        <div className="px-4 pb-3 text-xs text-red-500">{urlError}</div>
+                    )}
+                    {!urlError && urlWarning && (
+                        <div className="px-4 pb-3 text-xs text-amber-400">{urlWarning}</div>
+                    )}
                 </div>
             </div>
 
@@ -73,7 +86,7 @@ export const EndpointBar = ({ url, onUrlChange, onConnect, isLoading, activeTab,
                         size="md"
                         className="py-2! px-4! rounded-r-none! flex-1 md:flex-none justify-center"
                         onClick={onConnect}
-                        disabled={isLoading}
+                        disabled={isLoading || !!urlError}
                     >
                         {isLoading ? (
                             <Loader2 size={16} className="mr-2 animate-spin" />
