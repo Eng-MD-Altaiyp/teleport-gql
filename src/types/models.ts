@@ -17,10 +17,21 @@ export interface Collection {
     children: Endpoint[];
 }
 
+export interface EnvVariable {
+    id: string;
+    key: string;
+    sharedValue?: string;
+    localValue?: string;
+    isSecret?: boolean;
+}
+
 export interface Environment {
     id: string;
     name: string;
-    variables: Record<string, string>;
+    baseUrl?: string;
+    variables: EnvVariable[];
+    params?: EnvVariable[];
+    secrets?: EnvVariable[];
 }
 
 export interface HistoryItem {
@@ -47,7 +58,11 @@ export interface DataState {
     collections: Collection[];
     standalone: Endpoint[]; // Endpoints not attached to any collection
     environments: Environment[];
+    globalVariables: EnvVariable[];
+    globalParams: EnvVariable[];
+    globalSecrets: EnvVariable[];
     history: HistoryItem[];
     tabs: Tab[];
     activeTabId: string | null;
+    activeEnvironmentId: string | null;
 }

@@ -121,6 +121,12 @@
     .custom-scrollbar::-webkit-scrollbar-corner {
         background: transparent;
     }
+
+    /* Teleport palette helpers for dark IDE look (still legible in light mode) */
+    .bg-teleport-bg { @apply bg-slate-50 dark:bg-slate-950; }
+    .bg-teleport-panel { @apply bg-white dark:bg-slate-900; }
+    .border-teleport-border { @apply border-slate-200 dark:border-slate-800; }
+    .text-teleport-accent { @apply text-emerald-600 dark:text-emerald-300; }
 }
 
 /* Keyframes */
